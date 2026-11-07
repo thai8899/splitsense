@@ -2,9 +2,11 @@
 
 **Snap the receipt. Say who had what. Everyone pays their exact share with PayPal.**
 
-SplitSense is for the person who covered dinner. Claude reads the receipt and checks its own math. An AI agent turns one plain-English sentence ("Ada and I split the wings, Tolu had 2 of the beers, add 20% tip") into an exact split, down to the cent. Each friend gets a PayPal link for exactly what they owe, and you watch the payments land live.
+SplitSense is for the person who covered dinner. Google Gemini reads the receipt and checks its own math. An AI agent turns one plain-English sentence ("Ada and I split the wings, Tolu had 2 of the beers, add 20% tip") into an exact split, down to the cent. Each friend gets a PayPal link for exactly what they owe, and you watch the payments land live.
 
-Built for the **PayPal AI Hackathon 2026** with PayPal Orders v2, PayPal webhooks and Anthropic Claude.
+Built for the **PayPal AI Hackathon 2026** with PayPal Orders v2, PayPal webhooks and Google Gemini (Anthropic Claude also supported).
+
+**Live demo:** https://splitsense-t08n.onrender.com (free Render instance: the first load after a quiet spell can take up to a minute)
 
 ![Review screen: the receipt highlighted in each friend's colour](docs/screenshots/review.png)
 
@@ -17,10 +19,10 @@ Built for the **PayPal AI Hackathon 2026** with PayPal Orders v2, PayPal webhook
 ## Features
 
 **AI**
-- **Receipt vision with self-verification.** Claude reads photos or PDFs into line items, tax, tip, fees and discounts. The agent checks that items add up to the subtotal and the components add up to the total. If they don't, the exact mismatch goes back to the model so it can re-read the receipt (up to `AI_MAX_RETRIES`).
+- **Receipt vision with self-verification.** Gemini reads photos or PDFs into line items, tax, tip, fees and discounts. The agent checks that items add up to the subtotal and the components add up to the total. If they don't, the exact mismatch goes back to the model so it can re-read the receipt (up to `AI_MAX_RETRIES`).
 - **Natural-language allocation.** "I", "everyone", nicknames, "2 of the 3 beers" and "add 18% tip" all work. Unknown names, made-up items and skipped items are rejected with feedback, and the agent corrects itself.
 - **Strict structured output.** Both steps are forced tool calls with JSON schemas, mirrored by zod validation on the server.
-- **Two AI providers, one agent.** Claude by default, or Google Gemini with `AI_PROVIDER=gemini`. The same prompts, schemas and self-correction loop run on both; `gemini_adapter.ts` maps tool calls onto Gemini function calling.
+- **Two AI providers, one agent.** Google Gemini (`AI_PROVIDER=gemini`, used by the live demo) or Anthropic Claude (`AI_PROVIDER=anthropic`). The same prompts, schemas and self-correction loop run on both; `gemini_adapter.ts` maps tool calls onto Gemini function calling.
 - **The AI decides who had what, and code decides how much.** The largest-remainder method guarantees shares sum exactly to the bill, with no lost pennies.
 - **Live progress.** The AI steps stream to the browser as NDJSON: reading, checking the math, matching items, computing shares.
 
@@ -248,7 +250,7 @@ npm test            # Vitest: money math, PayPal client, AI agent loop, full API
 npm run typecheck   # strict TypeScript, server + web
 ```
 
-The tests inject a scripted Claude client and an in-memory PayPal fake, so they run offline and cover:
+The tests inject scripted Gemini and Claude clients and an in-memory PayPal fake, so they run offline and cover:
 - shares that always sum exactly to the total, under every rounding case
 - token caching, single-flight, 401 refresh, idempotency headers, `ORDER_ALREADY_CAPTURED`, typed errors
 - raw-body webhook verification

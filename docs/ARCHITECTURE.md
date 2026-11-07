@@ -8,8 +8,8 @@
 
 **Solution.** SplitSense turns a receipt photo and one plain-English sentence into exact PayPal payment requests:
 
-1. **Claude vision** reads the receipt into structured line items. It **checks its own arithmetic** (do the items add up to the subtotal, and do the components add up to the total?). If the numbers don't reconcile, the mismatch is sent back to the model so it can read the receipt again.
-2. **A Claude allocation agent** turns "Ada and I split the wings, Tolu had 2 of the 3 beers, add 20% tip" into weighted assignments for each item. Unknown names, made-up items and skipped items are rejected with precise feedback, and the agent retries.
+1. **Gemini vision** (or Claude, via `AI_PROVIDER`) reads the receipt into structured line items. It **checks its own arithmetic** (do the items add up to the subtotal, and do the components add up to the total?). If the numbers don't reconcile, the mismatch is sent back to the model so it can read the receipt again.
+2. **An allocation agent** on the same model turns "Ada and I split the wings, Tolu had 2 of the 3 beers, add 20% tip" into weighted assignments for each item. Unknown names, made-up items and skipped items are rejected with precise feedback, and the agent retries.
 3. **Deterministic code**, not the model, computes every cent. It uses the largest-remainder method, so everyone's shares always add up exactly to the bill.
 4. **PayPal Orders v2** charges each friend for exactly their share. The order carries a full item breakdown, so the PayPal review page shows "Grilled Salmon, Chicken Wings (1/2 share), your share of tax and tip".
 5. **Verified PayPal webhooks** confirm each capture and update the host's dashboard live over Server-Sent Events.
@@ -62,10 +62,10 @@
  ┌──────────────────────────── Express API (Node 22) ───────────────────────┐
  │                                                                          │
  │  ┌──────────── AI Engine (ai_agent.ts) ────────────┐                     │
- │  │ 1 extractReceipt: image/PDF ─► Claude vision    │   ┌──────────────┐  │
+ │  │ 1 extractReceipt: image/PDF ─► Gemini vision    │   ┌──────────────┐  │
  │  │   tool=record_receipt ─► zod ─► arithmetic check│   │  money.ts    │  │
  │  │   mismatch? ─► tool_result(is_error) ─► retry   │──►│ largest-     │  │
- │  │ 2 allocate: sentence ─► Claude                  │   │ remainder    │  │
+ │  │ 2 allocate: sentence ─► Gemini                  │   │ remainder    │  │
  │  │   tool=assign_items ─► names/items check ─► retry│  │ split, cents │  │
  │  └─────────────────────────────────────────────────┘   └──────┬───────┘  │
  │                                                               ▼          │
