@@ -14,6 +14,7 @@
  *
  * `createApp` takes its dependencies as arguments so tests can inject fakes.
  */
+import Anthropic from '@anthropic-ai/sdk';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 import { existsSync, readFileSync } from 'node:fs';
@@ -71,6 +72,22 @@ export function sniffMediaType(buffer: Buffer): ReceiptMediaType | null {
   if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') return 'image/webp';
   if (buffer.subarray(0, 5).toString('ascii') === '%PDF-') return 'application/pdf';
   return null;
+}
+
+/** Turn an Anthropic API failure into a message that tells the host what to fix. */
+export function describeAiError(error: unknown, model: string): string {
+  if (error instanceof Anthropic.APIError) {
+    const detail = String(error.message ?? '').toLowerCase();
+    if (error.status === 401) return 'The AI key was rejected. Check AI_API_KEY in your .env file, then restart the server.';
+    if (error.status === 403) return 'This AI key is not allowed to use the API. Check the key\'s permissions in the Anthropic console.';
+    if (error.status === 404) return `The AI model "${model}" is not available to this key. Set AI_MODEL in .env to a model your account can use.`;
+    if (detail.includes('credit balance')) return 'Your Anthropic account has no credits left. Add credits in the Anthropic console (Plans & Billing).';
+    if (error.status === 429) return 'The AI rate limit was reached. Wait a minute and try again.';
+    if (error.status === 529 || (error.status ?? 0) >= 500) return 'The AI service is busy right now. Try again in a moment.';
+    if (error.status === 400) return `The AI request was rejected: ${error.message}`;
+  }
+  if (error instanceof Anthropic.APIConnectionError) return 'Could not reach the AI service. Check your internet connection.';
+  return 'The AI step failed. Please try again.';
 }
 
 /** Tiny fixed-window rate limiter keyed by client IP; protects the paid AI endpoint. */
@@ -431,7 +448,7 @@ export function createApp(deps: AppDeps): express.Express {
           ai: { extractionAttempts: extraction.attempts, allocationAttempts: allocation.attempts, model: config.AI_MODEL },
         });
       } catch (error) {
-        const message = error instanceof AgentUserError ? error.message : 'The AI step failed. Please try again.';
+        const message = error instanceof AgentUserError ? error.message : describeAiError(error, config.AI_MODEL);
         if (!(error instanceof AgentUserError)) log.error('[ai/process]', error);
         send({ type: 'error', error: message });
       } finally {
@@ -464,7 +481,8 @@ export function createApp(deps: AppDeps): express.Express {
         res.json(billView(updated, [], config.APP_BASE_URL));
       } catch (error) {
         if (error instanceof AgentUserError) throw new HttpError(422, error.message);
-        throw error;
+        log.error('[ai/allocate]', error);
+        throw new HttpError(502, describeAiError(error, config.AI_MODEL));
       }
     }),
   );

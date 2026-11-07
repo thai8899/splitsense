@@ -64,7 +64,7 @@ splitsense/
 │   │   ├── bills.ts            shares, PayPal order mapping, views
 │   │   ├── db.ts               SQLite repository
 │   │   └── events.ts           Server-Sent Events hub
-│   └── test/                   Vitest + Supertest (34 tests)
+│   └── test/                   Vitest + Supertest (35 tests)
 └── web/                        React 19 + Vite + Tailwind 4
     └── src/
         ├── components/
@@ -94,7 +94,7 @@ git clone https://github.com/<your-username>/splitsense.git
 cd splitsense
 npm install                 # installs server + web workspaces
 cp .env.example .env        # then fill in the values below
-npm test                    # 34 tests, no network needed
+npm test                    # 35 tests, no network needed
 npm run dev                 # API on :3000, web on :5173 (proxied)
 ```
 
