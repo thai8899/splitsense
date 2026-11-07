@@ -27,7 +27,7 @@ services:
       - key: PAYPAL_WEBHOOK_ID
         sync: false
       - key: AI_PROVIDER
-        value: anthropic # or gemini (Google AI Studio key)
+        value: gemini # or anthropic (Claude key with credits)
       - key: AI_API_KEY
         sync: false
       - key: DATABASE_PATH
