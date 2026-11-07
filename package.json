@@ -1,0 +1,24 @@
+{
+  "name": "splitsense",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SplitSense - snap a receipt, describe who had what, and everyone pays their exact share with PayPal.",
+  "license": "MIT",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w web\"",
+    "build": "npm run build --workspace web && npm run build --workspace server",
+    "start": "npm run start --workspace server",
+    "test": "npm run test --workspace server",
+    "typecheck": "npm run typecheck --workspace server && npm run typecheck --workspace web"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.6"
+  }
+}

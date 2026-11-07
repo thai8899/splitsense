@@ -1,0 +1,34 @@
+# Render Blueprint: one web service serves the API and the built React app.
+# Deploy: Render dashboard > New > Blueprint > pick this repo, then fill in the secrets.
+services:
+  - type: web
+    name: splitsense
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: APP_BASE_URL
+        sync: false # e.g. https://splitsense.onrender.com
+      - key: APP_SECRET
+        generateValue: true
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_API_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: claude-sonnet-5-5
+      - key: DATABASE_PATH
+        value: ./data/splitsense.db
