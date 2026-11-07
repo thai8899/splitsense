@@ -41,7 +41,7 @@ SplitSense turns one receipt photo and one sentence into exact, itemized PayPal 
 
 ### How we built it
 - **Frontend:** React 19, Vite, TypeScript and Tailwind CSS 4. `@paypal/react-paypal-js` renders the Smart Payment Buttons. Progress streams in as NDJSON, and Server-Sent Events drive the live dashboard.
-- **Backend:** Node.js 22, Express 5 and TypeScript, with zod validation on every input, environment variable and AI output. SQLite (better-sqlite3) keeps setup at zero.
+- **Backend:** Node.js 22, Express 5 and TypeScript, with zod validation on every input, environment variable and AI output. Node's built-in SQLite (`node:sqlite`) keeps setup at zero, with nothing to compile.
 - **AI:** Anthropic Claude (`claude-sonnet-5-5`) through the official SDK. Two forced tool calls (`record_receipt` and `assign_items`) with JSON schemas, wrapped in a custom validate → feedback → retry loop. Validation failures go back to the model as `tool_result` errors, so it corrects itself. Receipts can be images or PDFs.
 - **PayPal:** OAuth 2.0 client credentials with cached, early-refreshing, single-flight tokens. Orders v2 create (with `items[]`, `amount.breakdown`, `custom_id` and `experience_context`) and capture. `PayPal-Request-Id` makes requests idempotent. `verify-webhook-signature` checks events, and handlers cover `PAYMENT.CAPTURE.*` and `CHECKOUT.ORDER.APPROVED`. Everything runs in the PayPal Sandbox.
 - **Hosting and quality:** Deployed on Render from a Blueprint. 34 Vitest and Supertest tests run fully offline using a scripted Claude client and a PayPal fake.

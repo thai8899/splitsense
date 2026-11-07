@@ -1,12 +1,12 @@
 /**
- * SQLite persistence (better-sqlite3, synchronous and transactional).
+ * SQLite persistence using Node's built-in `node:sqlite` (synchronous, transactional).
  *
- * SQLite keeps the project zero-config for judges: `npm install && npm run dev`
- * works without a database server. Structured sub-documents (receipt,
+ * Built into Node 22.13+, so there is no native module to compile on any OS and
+ * no database server to run: `npm install`, then `npm run dev`. Structured sub-documents (receipt,
  * assignments, breakdowns) are stored as JSON columns; anything we query or
  * update on its own (status, PayPal IDs) is a real column.
  */
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { ItemAssignment, PersonBreakdown, Receipt, TipOverride } from './money.js';
@@ -204,13 +204,13 @@ export interface SharePaymentUpdate {
 
 /** Typed repository over the SQLite file. One instance per process. */
 export class Store {
-  private readonly db: Database.Database;
+  private readonly db: DatabaseSync;
 
   constructor(path: string) {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
-    this.db = new Database(path);
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('foreign_keys = ON');
+    this.db = new DatabaseSync(path);
+    if (path !== ':memory:') this.db.exec('PRAGMA journal_mode = WAL');
+    this.db.exec('PRAGMA foreign_keys = ON');
     this.db.exec(SCHEMA);
   }
 
@@ -244,7 +244,7 @@ export class Store {
   }
 
   getBill(id: string): BillRecord | null {
-    const row = this.db.prepare('SELECT * FROM bills WHERE id = ?').get(id) as BillRow | undefined;
+    const row = this.db.prepare('SELECT * FROM bills WHERE id = ?').get(id) as unknown as BillRow | undefined;
     return row ? toBill(row) : null;
   }
 
@@ -277,40 +277,47 @@ export class Store {
       `INSERT INTO shares (id, bill_id, participant, is_host, amount_cents, currency, breakdown_json, status, updated_at)
        VALUES (@id, @billId, @participant, @isHost, @amountCents, @currency, @breakdown, @status, @ts)`,
     );
-    const tx = this.db.transaction(() => {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
       const changed = this.db
         .prepare(`UPDATE bills SET status = 'finalized', updated_at = ? WHERE id = ? AND status = 'draft'`)
         .run(ts, id).changes;
       if (changed !== 1) throw new Error('Bill is not in draft state');
       for (const share of shares) {
         insert.run({
-          ...share,
+          id: share.id,
+          billId: share.billId,
+          participant: share.participant,
           isHost: share.isHost ? 1 : 0,
+          amountCents: share.amountCents,
+          currency: share.currency,
           breakdown: JSON.stringify(share.breakdown),
+          status: share.status,
           ts,
         });
       }
-    });
-    tx();
+      this.db.exec('COMMIT');
+    } catch (error) {
+      this.db.exec('ROLLBACK');
+      throw error;
+    }
     return this.listShares(id);
   }
 
   listShares(billId: string): ShareRecord[] {
     const rows = this.db
       .prepare('SELECT * FROM shares WHERE bill_id = ? ORDER BY is_host DESC, rowid ASC')
-      .all(billId) as ShareRow[];
+      .all(billId) as unknown as ShareRow[];
     return rows.map(toShare);
   }
 
   getShare(id: string): ShareRecord | null {
-    const row = this.db.prepare('SELECT * FROM shares WHERE id = ?').get(id) as ShareRow | undefined;
+    const row = this.db.prepare('SELECT * FROM shares WHERE id = ?').get(id) as unknown as ShareRow | undefined;
     return row ? toShare(row) : null;
   }
 
   getShareByOrderId(orderId: string): ShareRecord | null {
-    const row = this.db.prepare('SELECT * FROM shares WHERE paypal_order_id = ?').get(orderId) as
-      | ShareRow
-      | undefined;
+    const row = this.db.prepare('SELECT * FROM shares WHERE paypal_order_id = ?').get(orderId) as unknown as ShareRow | undefined;
     return row ? toShare(row) : null;
   }
 

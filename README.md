@@ -81,7 +81,8 @@ splitsense/
 
 ## Prerequisites
 
-- **Node.js 20.11+** (22 LTS recommended; `.nvmrc` included) and npm 10+
+- **Node.js 22.13 or newer** (22 LTS or later, including 24 and 26; `.nvmrc` included). The database is Node's built-in SQLite, so nothing native is compiled and Python or Visual Studio aren't needed
+- **Windows PowerShell:** run commands one per line (older PowerShell doesn't support `&&`). If you see "running scripts is disabled", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or type `npm.cmd` instead of `npm`
 - A free **PayPal Developer** account: <https://developer.paypal.com>
 - An **Anthropic API key**: <https://console.anthropic.com>
 - Optional, for webhooks on localhost: a tunnel such as [ngrok](https://ngrok.com) or `cloudflared`

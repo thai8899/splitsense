@@ -29,7 +29,7 @@
 | Payment UI | `@paypal/react-paypal-js` (PayPal JS SDK, Smart Payment Buttons) | Official SDK. Shows PayPal, Venmo, Pay Later and card |
 | Backend | Node.js 22, Express 5, TypeScript (ESM) | Typed end to end. Express 5 forwards async errors natively |
 | Validation | zod 4 | Every request body, every environment variable, and every AI tool output |
-| Database | SQLite via `better-sqlite3` (WAL mode) | No setup for judges. Transactional finalize. Swap-ready repository layer |
+| Database | SQLite via Node's built-in `node:sqlite` (WAL mode) | No native build and no server, on any OS. Transactional finalize. Swap-ready repository layer |
 | PayPal APIs | OAuth 2.0 client credentials, Orders v2 (create, capture, get), Webhooks verify-signature | See below |
 | AI | Anthropic Claude (`claude-sonnet-5-5`) via `@anthropic-ai/sdk` | Vision plus PDF input, forced tool use with a JSON schema |
 | Agent framework | Custom validate → feedback → retry loop (no LangChain) | Small, testable, and the model's errors become its own input |
