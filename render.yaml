@@ -26,9 +26,9 @@ services:
         value: https://api-m.sandbox.paypal.com
       - key: PAYPAL_WEBHOOK_ID
         sync: false
+      - key: AI_PROVIDER
+        value: anthropic # or gemini (Google AI Studio key)
       - key: AI_API_KEY
         sync: false
-      - key: AI_MODEL
-        value: claude-sonnet-5-5
       - key: DATABASE_PATH
         value: ./data/splitsense.db

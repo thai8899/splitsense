@@ -15,6 +15,7 @@
  * `createApp` takes its dependencies as arguments so tests can inject fakes.
  */
 import Anthropic from '@anthropic-ai/sdk';
+import { ApiError as GeminiApiError } from '@google/genai';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 import { existsSync, readFileSync } from 'node:fs';
@@ -87,6 +88,17 @@ export function describeAiError(error: unknown, model: string): string {
     if (error.status === 400) return `The AI request was rejected: ${error.message}`;
   }
   if (error instanceof Anthropic.APIConnectionError) return 'Could not reach the AI service. Check your internet connection.';
+  if (error instanceof GeminiApiError) {
+    const detail = error.message.toLowerCase();
+    if (detail.includes('api key not valid') || detail.includes('api_key_invalid') || error.status === 401) {
+      return 'The Google AI Studio key was rejected. Check AI_API_KEY in your .env file, then restart the server.';
+    }
+    if (error.status === 403) return 'This Google AI Studio key is not allowed to use the Gemini API. Check the key in AI Studio.';
+    if (error.status === 404) return `The AI model "${model}" is not available to this key. Set AI_MODEL in .env to a model listed in AI Studio.`;
+    if (error.status === 429) return 'The free Gemini quota was reached. Wait a minute (or until tomorrow for the daily limit) and try again.';
+    if (error.status >= 500) return 'The AI service is busy right now. Try again in a moment.';
+    if (error.status === 400) return `The AI request was rejected: ${error.message.slice(0, 200)}`;
+  }
   return 'The AI step failed. Please try again.';
 }
 

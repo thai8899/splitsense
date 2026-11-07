@@ -33,8 +33,11 @@ const EnvSchema = z.object({
   PAYPAL_WEBHOOK_SKIP_VERIFY: booleanFromEnv,
   PAYPAL_BRAND_NAME: z.string().default('SplitSense'),
 
-  AI_API_KEY: z.string().min(1, 'AI_API_KEY (Anthropic API key) is required'),
-  AI_MODEL: z.string().default('claude-sonnet-5-5'),
+  /** Which AI service reads receipts: Anthropic Claude or Google Gemini (AI Studio). */
+  AI_PROVIDER: z.enum(['anthropic', 'gemini']).default('anthropic'),
+  AI_API_KEY: z.string().min(1, 'AI_API_KEY is required (Anthropic key, or Google AI Studio key when AI_PROVIDER=gemini)'),
+  /** Leave empty to use the provider's default model. */
+  AI_MODEL: z.string().default(''),
   AI_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
 
   DATABASE_PATH: z.string().default('./data/splitsense.db'),
@@ -43,6 +46,9 @@ const EnvSchema = z.object({
   DEFAULT_CURRENCY: z.string().length(3).default('USD'),
   MAX_UPLOAD_MB: z.coerce.number().positive().max(20).default(8),
 });
+
+/** Default model per provider when AI_MODEL is not set. */
+export const DEFAULT_MODELS = { anthropic: 'claude-sonnet-5-5', gemini: 'gemini-3.5-flash' } as const;
 
 export type AppConfig = Readonly<z.infer<typeof EnvSchema>>;
 
@@ -55,7 +61,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       .join('\n');
     throw new Error(`Invalid environment configuration:\n${problems}\nSee .env.example.`);
   }
-  const config = parsed.data;
+  const config = { ...parsed.data };
+  if (!config.AI_MODEL) config.AI_MODEL = DEFAULT_MODELS[config.AI_PROVIDER];
   if (config.NODE_ENV === 'production' && config.PAYPAL_WEBHOOK_SKIP_VERIFY) {
     throw new Error('PAYPAL_WEBHOOK_SKIP_VERIFY must never be enabled in production.');
   }

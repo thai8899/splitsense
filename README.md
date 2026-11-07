@@ -20,6 +20,7 @@ Built for the **PayPal AI Hackathon 2026** with PayPal Orders v2, PayPal webhook
 - **Receipt vision with self-verification.** Claude reads photos or PDFs into line items, tax, tip, fees and discounts. The agent checks that items add up to the subtotal and the components add up to the total. If they don't, the exact mismatch goes back to the model so it can re-read the receipt (up to `AI_MAX_RETRIES`).
 - **Natural-language allocation.** "I", "everyone", nicknames, "2 of the 3 beers" and "add 18% tip" all work. Unknown names, made-up items and skipped items are rejected with feedback, and the agent corrects itself.
 - **Strict structured output.** Both steps are forced tool calls with JSON schemas, mirrored by zod validation on the server.
+- **Two AI providers, one agent.** Claude by default, or Google Gemini with `AI_PROVIDER=gemini`. The same prompts, schemas and self-correction loop run on both; `gemini_adapter.ts` maps tool calls onto Gemini function calling.
 - **The AI decides who had what, and code decides how much.** The largest-remainder method guarantees shares sum exactly to the bill, with no lost pennies.
 - **Live progress.** The AI steps stream to the browser as NDJSON: reading, checking the math, matching items, computing shares.
 
@@ -58,13 +59,14 @@ splitsense/
 │   │   ├── index.ts            boot + graceful shutdown
 │   │   ├── config.ts           zod-validated environment
 │   │   ├── server.ts           routes, webhook handler, errors
-│   │   ├── ai_agent.ts         Claude prompts, tool schemas, retry loop
+│   │   ├── ai_agent.ts         prompts, tool schemas, retry loop
+│   │   ├── gemini_adapter.ts   runs the same agent on Google Gemini
 │   │   ├── paypal.ts           OAuth, Orders v2, webhook verification
 │   │   ├── money.ts            cents math, largest-remainder split
 │   │   ├── bills.ts            shares, PayPal order mapping, views
 │   │   ├── db.ts               SQLite repository
 │   │   └── events.ts           Server-Sent Events hub
-│   └── test/                   Vitest + Supertest (35 tests)
+│   └── test/                   Vitest + Supertest (38 tests)
 └── web/                        React 19 + Vite + Tailwind 4
     └── src/
         ├── components/
@@ -84,7 +86,9 @@ splitsense/
 - **Node.js 22.13 or newer** (22 LTS or later, including 24 and 26; `.nvmrc` included). The database is Node's built-in SQLite, so nothing native is compiled and Python or Visual Studio aren't needed
 - **Windows PowerShell:** run commands one per line (older PowerShell doesn't support `&&`). If you see "running scripts is disabled", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or type `npm.cmd` instead of `npm`
 - A free **PayPal Developer** account: <https://developer.paypal.com>
-- An **Anthropic API key**: <https://console.anthropic.com>
+- An AI key, either one:
+  - **Anthropic API key** (<https://console.anthropic.com>, needs prepaid credits), or
+  - **Google AI Studio key** (<https://aistudio.google.com> → Get API key; Gemini has a free tier). Set `AI_PROVIDER=gemini`
 - Optional, for webhooks on localhost: a tunnel such as [ngrok](https://ngrok.com) or `cloudflared`
 
 ## Local setup
@@ -94,7 +98,7 @@ git clone https://github.com/<your-username>/splitsense.git
 cd splitsense
 npm install                 # installs server + web workspaces
 cp .env.example .env        # then fill in the values below
-npm test                    # 35 tests, no network needed
+npm test                    # 38 tests, no network needed
 npm run dev                 # API on :3000, web on :5173 (proxied)
 ```
 
@@ -106,7 +110,7 @@ Minimum `.env` to run:
 APP_SECRET=<any random 32+ char string>
 PAYPAL_CLIENT_ID=<sandbox client id>
 PAYPAL_CLIENT_SECRET=<sandbox secret>
-AI_API_KEY=<anthropic key>
+AI_API_KEY=<anthropic key, or AI Studio key with AI_PROVIDER=gemini>
 ```
 
 Production build (the same thing Render runs):

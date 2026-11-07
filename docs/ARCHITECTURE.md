@@ -31,11 +31,11 @@
 | Validation | zod 4 | Every request body, every environment variable, and every AI tool output |
 | Database | SQLite via Node's built-in `node:sqlite` (WAL mode) | No native build and no server, on any OS. Transactional finalize. Swap-ready repository layer |
 | PayPal APIs | OAuth 2.0 client credentials, Orders v2 (create, capture, get), Webhooks verify-signature | See below |
-| AI | Anthropic Claude (`claude-sonnet-5-5`) via `@anthropic-ai/sdk` | Vision plus PDF input, forced tool use with a JSON schema |
+| AI | Anthropic Claude (`claude-sonnet-5-5`) via `@anthropic-ai/sdk`, or Google Gemini (`gemini-3.5-flash`) via `@google/genai` with `AI_PROVIDER=gemini` | Vision plus PDF input, forced tool use / function calling with a JSON schema |
 | Agent framework | Custom validate → feedback → retry loop (no LangChain) | Small, testable, and the model's errors become its own input |
 | Realtime | Server-Sent Events | One-way push of status changes. No extra infrastructure |
 | Hosting | Render (Blueprint in `render.yaml`) | One service serves the API and static build. Health check at `/api/health` |
-| Tests | Vitest + Supertest (35 tests) | Money math, PayPal client, agent loop, full API flow with fakes |
+| Tests | Vitest + Supertest (38 tests) | Money math, PayPal client, agent loop, full API flow with fakes |
 
 ### PayPal integration details
 

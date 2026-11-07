@@ -19,7 +19,7 @@ const paypal = new PayPalClient({
   webhookId: config.PAYPAL_WEBHOOK_ID,
   brandName: config.PAYPAL_BRAND_NAME,
 });
-const agent = createSplitAgent(config.AI_API_KEY, {
+const agent = createSplitAgent(config.AI_PROVIDER, config.AI_API_KEY, {
   model: config.AI_MODEL,
   maxRetries: config.AI_MAX_RETRIES,
   defaultCurrency: config.DEFAULT_CURRENCY,
@@ -31,7 +31,7 @@ if (!config.PAYPAL_WEBHOOK_ID && !config.PAYPAL_WEBHOOK_SKIP_VERIFY) {
 
 const app = createApp({ config, store, paypal, agent, hub });
 const server = app.listen(config.PORT, () => {
-  console.info(`[boot] SplitSense API on :${config.PORT} (PayPal ${paypal.isSandbox ? 'sandbox' : 'LIVE'}, model ${config.AI_MODEL})`);
+  console.info(`[boot] SplitSense API on :${config.PORT} (PayPal ${paypal.isSandbox ? 'sandbox' : 'LIVE'}, ${config.AI_PROVIDER} ${config.AI_MODEL})`);
 });
 
 function shutdown(signal: string) {
