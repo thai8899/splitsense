@@ -10,9 +10,11 @@ Built for the **PayPal AI Hackathon 2026** with PayPal Orders v2, PayPal webhook
 
 ![Review screen: the receipt highlighted in each friend's colour](docs/screenshots/review.png)
 
-| Live dashboard | Friend's payment page (mobile) |
+| Live dashboard | Friend's payment page |
 |---|---|
-| ![Dashboard updating live](docs/screenshots/dashboard-live.png) | ![Pay page with PayPal buttons](docs/screenshots/pay-mobile.png) |
+| ![Dashboard updating live](docs/screenshots/dashboard-live.png) | ![Pay page with PayPal buttons](docs/screenshots/pay.png) |
+
+![How SplitSense works](docs/screenshots/how-it-works.png)
 
 ---
 
