@@ -21,6 +21,7 @@ Built for the **PayPal AI Hackathon 2026** with PayPal Orders v2, PayPal webhook
 **AI**
 - **Receipt vision with self-verification.** Gemini reads photos or PDFs into line items, tax, tip, fees and discounts. The agent checks that items add up to the subtotal and the components add up to the total. If they don't, the exact mismatch goes back to the model so it can re-read the receipt (up to `AI_MAX_RETRIES`).
 - **Natural-language allocation.** "I", "everyone", nicknames, "2 of the 3 beers" and "add 18% tip" all work. Unknown names, made-up items and skipped items are rejected with feedback, and the agent corrects itself.
+- **Rides out AI outages.** Busy or overloaded responses (e.g. Gemini's "high demand" 503) are retried with backoff, then sent to a fallback model (`gemini-3.1-flash-lite`) before the user ever sees an error.
 - **Strict structured output.** Both steps are forced tool calls with JSON schemas, mirrored by zod validation on the server.
 - **Two AI providers, one agent.** Google Gemini (`AI_PROVIDER=gemini`, used by the live demo) or Anthropic Claude (`AI_PROVIDER=anthropic`). The same prompts, schemas and self-correction loop run on both; `gemini_adapter.ts` maps tool calls onto Gemini function calling.
 - **The AI decides who had what, and code decides how much.** The largest-remainder method guarantees shares sum exactly to the bill, with no lost pennies.
@@ -69,7 +70,7 @@ splitsense/
 │   │   ├── bills.ts            shares, PayPal order mapping, views
 │   │   ├── db.ts               SQLite repository
 │   │   └── events.ts           Server-Sent Events hub
-│   └── test/                   Vitest + Supertest (38 tests)
+│   └── test/                   Vitest + Supertest (42 tests)
 └── web/                        React 19 + Vite + Tailwind 4
     └── src/
         ├── components/
@@ -101,7 +102,7 @@ git clone https://github.com/<your-username>/splitsense.git
 cd splitsense
 npm install                 # installs server + web workspaces
 cp .env.example .env        # then fill in the values below
-npm test                    # 38 tests, no network needed
+npm test                    # 42 tests, no network needed
 npm run dev                 # API on :3000, web on :5173 (proxied)
 ```
 

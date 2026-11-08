@@ -38,6 +38,8 @@ const EnvSchema = z.object({
   AI_API_KEY: z.string().min(1, 'AI_API_KEY is required (Anthropic key, or Google AI Studio key when AI_PROVIDER=gemini)'),
   /** Leave empty to use the provider's default model. */
   AI_MODEL: z.string().default(''),
+  /** Used if AI_MODEL stays overloaded after retries (Gemini only). Set to "none" to disable. */
+  AI_FALLBACK_MODEL: z.string().default(''),
   AI_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
 
   DATABASE_PATH: z.string().default('./data/splitsense.db'),
@@ -63,6 +65,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   }
   const config = { ...parsed.data };
   if (!config.AI_MODEL) config.AI_MODEL = DEFAULT_MODELS[config.AI_PROVIDER];
+  if (!config.AI_FALLBACK_MODEL && config.AI_PROVIDER === 'gemini') config.AI_FALLBACK_MODEL = 'gemini-3.1-flash-lite';
+  if (config.AI_FALLBACK_MODEL === 'none') config.AI_FALLBACK_MODEL = '';
   if (config.NODE_ENV === 'production' && config.PAYPAL_WEBHOOK_SKIP_VERIFY) {
     throw new Error('PAYPAL_WEBHOOK_SKIP_VERIFY must never be enabled in production.');
   }

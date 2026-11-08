@@ -52,18 +52,66 @@ export function toGeminiSchema(schema: unknown): unknown {
   return out;
 }
 
+export interface GeminiAdapterOptions {
+  /** Model to try when the requested one stays overloaded (503) after retries. */
+  fallbackModel?: string;
+  /** Pauses between retries of a busy model, in ms. */
+  retryDelaysMs?: number[];
+  sleep?: (ms: number) => Promise<void>;
+}
+
+/** Statuses worth retrying: Google's "high demand" 503 and other transient server errors. */
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+
+function statusOf(error: unknown): number | null {
+  const status = (error as { status?: unknown })?.status;
+  return typeof status === 'number' ? status : null;
+}
+
 export class GeminiAdapter implements AnthropicLike {
   /** Original model turns keyed by the tool_use id we handed back, for faithful replay. */
   private readonly modelTurns = new Map<string, Content>();
+  private readonly retryDelaysMs: number[];
+  private readonly sleep: (ms: number) => Promise<void>;
 
-  constructor(private readonly models: GeminiModelsLike) {}
+  constructor(
+    private readonly models: GeminiModelsLike,
+    private readonly options: GeminiAdapterOptions = {},
+  ) {
+    this.retryDelaysMs = options.retryDelaysMs ?? [1500, 4000];
+    this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  }
+
+  /**
+   * generateContent with resilience: retry transient errors with backoff, then,
+   * if the model is still unavailable, try the fallback model the same way.
+   */
+  private async generateWithRetry(params: GenerateContentParameters): Promise<GenerateContentResponse> {
+    const models = [params.model, this.options.fallbackModel].filter(
+      (m, i, all): m is string => Boolean(m) && all.indexOf(m) === i,
+    );
+    let lastError: unknown;
+    for (const model of models) {
+      for (let attempt = 0; attempt <= this.retryDelaysMs.length; attempt += 1) {
+        try {
+          return await this.models.generateContent({ ...params, model });
+        } catch (error) {
+          lastError = error;
+          const status = statusOf(error);
+          if (status === null || !RETRYABLE.has(status)) throw error;
+          if (attempt < this.retryDelaysMs.length) await this.sleep(this.retryDelaysMs[attempt]!);
+        }
+      }
+    }
+    throw lastError;
+  }
 
   readonly messages = {
     create: async (body: Anthropic.MessageCreateParamsNonStreaming): Promise<Anthropic.Message> => {
       const tool = body.tools?.[0] as Anthropic.Tool | undefined;
       if (!tool) throw new Error('GeminiAdapter requires exactly one tool');
 
-      const response = await this.models.generateContent({
+      const response = await this.generateWithRetry({
         model: body.model,
         contents: this.toContents(body.messages),
         config: {
@@ -155,7 +203,7 @@ export class GeminiAdapter implements AnthropicLike {
   }
 }
 
-export function createGeminiAdapter(apiKey: string): GeminiAdapter {
+export function createGeminiAdapter(apiKey: string, options: GeminiAdapterOptions = {}): GeminiAdapter {
   const ai = new GoogleGenAI({ apiKey });
-  return new GeminiAdapter(ai.models);
+  return new GeminiAdapter(ai.models, options);
 }

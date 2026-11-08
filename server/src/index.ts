@@ -23,7 +23,7 @@ const agent = createSplitAgent(config.AI_PROVIDER, config.AI_API_KEY, {
   model: config.AI_MODEL,
   maxRetries: config.AI_MAX_RETRIES,
   defaultCurrency: config.DEFAULT_CURRENCY,
-});
+}, config.AI_FALLBACK_MODEL);
 
 if (!config.PAYPAL_WEBHOOK_ID && !config.PAYPAL_WEBHOOK_SKIP_VERIFY) {
   console.warn('[boot] PAYPAL_WEBHOOK_ID is not set: webhooks will be rejected until it is configured.');

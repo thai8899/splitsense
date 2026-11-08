@@ -466,8 +466,13 @@ export class SplitAgent {
 }
 
 /** Factory for the real agent, backed by Anthropic Claude or Google Gemini. */
-export function createSplitAgent(provider: 'anthropic' | 'gemini', apiKey: string, options: SplitAgentOptions): SplitAgent {
-  if (provider === 'gemini') return new SplitAgent(createGeminiAdapter(apiKey), options);
+export function createSplitAgent(
+  provider: 'anthropic' | 'gemini',
+  apiKey: string,
+  options: SplitAgentOptions,
+  fallbackModel?: string,
+): SplitAgent {
+  if (provider === 'gemini') return new SplitAgent(createGeminiAdapter(apiKey, { fallbackModel: fallbackModel || undefined }), options);
   const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 90_000 });
   return new SplitAgent(client as unknown as AnthropicLike, options);
 }

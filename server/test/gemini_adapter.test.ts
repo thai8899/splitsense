@@ -30,6 +30,29 @@ describe('toGeminiSchema', () => {
   });
 });
 
+describe('GeminiAdapter resilience', () => {
+  const tool = { name: 'record_receipt', description: 'd', input_schema: { type: 'object' as const, properties: {} } };
+  const body = { model: 'main', max_tokens: 100, tools: [tool], tool_choice: { type: 'tool' as const, name: 'record_receipt' }, messages: [{ role: 'user' as const, content: 'hi' }] };
+  const ok = { candidates: [{ content: { role: 'model', parts: [{ functionCall: { name: 'record_receipt', args: {} } }] } }] } as unknown as GenerateContentResponse;
+  const busy = Object.assign(new Error('high demand'), { status: 503 });
+
+  it('retries a busy model, then falls back to the second model', async () => {
+    const seen: string[] = [];
+    const models = { async generateContent(p: GenerateContentParameters) { seen.push(p.model); if (p.model === 'main') throw busy; return ok; } };
+    const adapter = new GeminiAdapter(models, { fallbackModel: 'backup', retryDelaysMs: [0, 0], sleep: async () => undefined });
+    await adapter.messages.create(body as any);
+    expect(seen).toEqual(['main', 'main', 'main', 'backup']);
+  });
+
+  it('does not retry non-transient errors', async () => {
+    let calls = 0;
+    const models = { async generateContent() { calls += 1; throw Object.assign(new Error('bad key'), { status: 400 }); } };
+    const adapter = new GeminiAdapter(models, { fallbackModel: 'backup', retryDelaysMs: [0], sleep: async () => undefined });
+    await expect(adapter.messages.create(body as any)).rejects.toThrow('bad key');
+    expect(calls).toBe(1);
+  });
+});
+
 describe('GeminiAdapter with SplitAgent', () => {
   const options = { model: 'gemini-3.5-flash', maxRetries: 2, defaultCurrency: 'USD' };
   const file = { data: Buffer.from('img'), mediaType: 'image/png' as const };

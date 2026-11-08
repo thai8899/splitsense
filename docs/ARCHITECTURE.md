@@ -35,7 +35,7 @@
 | Agent framework | Custom validate → feedback → retry loop (no LangChain) | Small, testable, and the model's errors become its own input |
 | Realtime | Server-Sent Events | One-way push of status changes. No extra infrastructure |
 | Hosting | Render (Blueprint in `render.yaml`) | One service serves the API and static build. Health check at `/api/health` |
-| Tests | Vitest + Supertest (38 tests) | Money math, PayPal client, agent loop, full API flow with fakes |
+| Tests | Vitest + Supertest (42 tests) | Money math, PayPal client, agent loop, full API flow with fakes |
 
 ### PayPal integration details
 
