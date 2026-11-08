@@ -42,7 +42,7 @@
 | Purpose | Endpoint | Notes |
 |---|---|---|
 | Auth | `POST /v1/oauth2/token` | Basic auth with client ID and secret. Token cached in memory and refreshed 60 s before expiry. Concurrent callers share one in-flight request. A 401 triggers one refresh and retry |
-| Create order | `POST /v2/checkout/orders` | `intent: CAPTURE`. `custom_id`/`reference_id` = share ID. `items[]` + `breakdown` (item_total, tax_total, handling, discount). `experience_context` with `NO_SHIPPING` and `PAY_NOW`. `PayPal-Request-Id` set |
+| Create order | `POST /v2/checkout/orders` | `intent: CAPTURE`. Optional `payee.email_address` = host's PayPal email, so friends pay the host directly. `custom_id`/`reference_id` = share ID. `items[]` + `breakdown` (item_total, tax_total, handling, discount). `experience_context` with `NO_SHIPPING` and `PAY_NOW`. `PayPal-Request-Id` set |
 | Capture | `POST /v2/checkout/orders/{id}/capture` | `PayPal-Request-Id: capture-{orderId}`, so retries are idempotent. `ORDER_ALREADY_CAPTURED` is treated as success. `INSTRUMENT_DECLINED` → button `actions.restart()` |
 | Get order | `GET /v2/checkout/orders/{id}` | Used for already-captured recovery |
 | Verify webhook | `POST /v1/notifications/verify-webhook-signature` | The raw request body is spliced in byte for byte. Re-serializing it can break verification |

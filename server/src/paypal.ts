@@ -59,6 +59,8 @@ export interface CreateOrderInput {
   returnUrl: string;
   cancelUrl: string;
   requestId?: string;
+  /** When set, the money goes straight to this PayPal account instead of the app's own merchant account. */
+  payeeEmail?: string | null;
 }
 
 export interface PayPalLink {
@@ -243,6 +245,7 @@ export class PayPalClient {
         {
           reference_id: input.referenceId,
           custom_id: input.referenceId,
+          ...(input.payeeEmail ? { payee: { email_address: input.payeeEmail } } : {}),
           description: clip(input.description, 127),
           soft_descriptor: clip(this.options.brandName.replace(/[^A-Za-z0-9 ]/g, ''), 22),
           amount: { ...money(total), breakdown },

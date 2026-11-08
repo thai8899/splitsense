@@ -69,6 +69,7 @@ export function orderInputForShare(
     discountCents: b.discountCents,
     returnUrl: `${payUrl}?result=approved`,
     cancelUrl: `${payUrl}?result=cancelled`,
+    payeeEmail: bill.hostPayPalEmail,
   };
 }
 
@@ -114,6 +115,7 @@ export function billView(bill: BillRecord, shares: ShareRecord[], appBaseUrl: st
     id: bill.id,
     title: bill.title,
     hostName: bill.hostName,
+    hostPayPalEmail: bill.hostPayPalEmail,
     participants: bill.participants,
     status: bill.status,
     instructions: bill.instructions,

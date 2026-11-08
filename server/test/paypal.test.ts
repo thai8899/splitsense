@@ -91,6 +91,15 @@ describe('PayPalClient orders', () => {
     expect(body.payment_source.paypal.experience_context.shipping_preference).toBe('NO_SHIPPING');
   });
 
+  it('routes money to the host when a payee email is given', () => {
+    const { client } = makeClient(() => json(200, {}));
+    const base = { referenceId: 's1', currency: 'USD', description: 'd', items: [{ name: 'x', amountCents: 500 }], taxCents: 0, handlingCents: 0, discountCents: 0, returnUrl: 'r', cancelUrl: 'c' };
+    const direct = client.buildOrderBody({ ...base, payeeEmail: 'host@example.com' }) as any;
+    expect(direct.purchase_units[0].payee).toEqual({ email_address: 'host@example.com' });
+    const merchant = client.buildOrderBody(base) as any;
+    expect(merchant.purchase_units[0].payee).toBeUndefined();
+  });
+
   it('sends idempotency headers and returns the order on capture', async () => {
     const seen: Record<string, string>[] = [];
     const { client } = makeClient((url, init) => {

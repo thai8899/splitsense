@@ -27,6 +27,7 @@ Built for the **PayPal AI Hackathon 2026** with PayPal Orders v2, PayPal webhook
 - **Live progress.** The AI steps stream to the browser as NDJSON: reading, checking the math, matching items, computing shares.
 
 **PayPal**
+- **Friends pay the host directly.** Enter your PayPal email and each order names you as the `payee`, so the money lands in your PayPal account with no middleman. Leave it blank and payments collect in the app's merchant account.
 - **Orders v2 with a full item breakdown.** Each friend sees "Chicken Wings (1/2 share), Tip (your share)" on the PayPal review page.
 - **Smart Payment Buttons** (`@paypal/react-paypal-js`): PayPal, Venmo, Pay Later and card.
 - **OAuth 2.0 token caching** with early refresh, single-flight deduplication, and automatic retry after a 401.
@@ -176,6 +177,7 @@ Runs both AI steps and creates a draft bill. **Request** is `multipart/form-data
 | `receipt` | file | JPEG, PNG, WebP, GIF or PDF, up to `MAX_UPLOAD_MB` |
 | `useSample` | `"true"` | use the bundled sample instead of `receipt` |
 | `hostName` | string | the person who paid |
+| `hostPayPalEmail` | email | optional; friends' payments go straight to this PayPal account (Orders v2 `payee`) |
 | `friends` | JSON array or comma list | 1–11 names, unique |
 | `instructions` | string | who had what, ≤ 2000 chars |
 | `title` | string | optional |

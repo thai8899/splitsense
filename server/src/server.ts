@@ -124,6 +124,14 @@ const nameSchema = z.string().trim().min(1, 'Names cannot be empty').max(40, 'Na
 const ProcessFieldsSchema = z.object({
   title: z.string().trim().max(80).default(''),
   hostName: nameSchema,
+  /** Optional: the host's PayPal email so friends pay them directly. */
+  hostPayPalEmail: z
+    .string()
+    .trim()
+    .max(254)
+    .optional()
+    .transform((v) => (v ? v.toLowerCase() : null))
+    .pipe(z.union([z.null(), z.email('Enter a valid PayPal email, or leave it blank')])),
   friends: z
     .string()
     .transform((raw, ctx) => {
@@ -445,6 +453,7 @@ export function createApp(deps: AppDeps): express.Express {
           adminTokenHash: hashAdminToken(adminToken, config.APP_SECRET),
           title: fields.title || `${extraction.receipt.merchant} split`,
           hostName: fields.hostName,
+          hostPayPalEmail: fields.hostPayPalEmail,
           participants,
           receipt: extraction.receipt,
           assignments: allocation.assignments,
@@ -554,6 +563,7 @@ export function createApp(deps: AppDeps): express.Express {
         merchant: bill.receipt.merchant,
         date: bill.receipt.date,
         partySize: bill.participants.length,
+        paysHostDirectly: Boolean(bill.hostPayPalEmail),
       },
     });
   });
@@ -570,7 +580,17 @@ export function createApp(deps: AppDeps): express.Express {
       }
       const bill = loadBill(share.billId);
       // Amounts come from the stored split, never from the browser.
-      const order = await paypal.createOrder(orderInputForShare(bill, share, config.APP_BASE_URL));
+      let order;
+      try {
+        order = await paypal.createOrder(orderInputForShare(bill, share, config.APP_BASE_URL));
+      } catch (error) {
+        if (error instanceof PayPalApiError && error.issue?.startsWith('PAYEE_')) {
+          throw new HttpError(422, `PayPal can't send money to ${bill.hostName}'s PayPal account (${error.issue}). Ask ${bill.hostName} to check the email they entered.`, {
+            issue: error.issue,
+          });
+        }
+        throw error;
+      }
       const updated = store.updateSharePayment(share.id, { status: 'order_created', paypalOrderId: order.id });
       publishShare(updated);
       res.status(201).json({ id: order.id, status: order.status });
@@ -601,6 +621,14 @@ export function createApp(deps: AppDeps): express.Express {
           share: shareView(updated, config.APP_BASE_URL),
         });
       } catch (error) {
+        if (error instanceof PayPalApiError && error.issue === 'PAYER_CANNOT_PAY_SELF') {
+          throw new HttpError(422, 'You are logged in to the same PayPal account that is receiving this money. Log in with a different PayPal account.', {
+            issue: error.issue,
+          });
+        }
+        if (error instanceof PayPalApiError && error.issue?.startsWith('PAYEE_')) {
+          throw new HttpError(422, `PayPal can't deliver this payment to the receiving account (${error.issue}).`, { issue: error.issue });
+        }
         if (error instanceof PayPalApiError && error.issue === 'INSTRUMENT_DECLINED') {
           throw new HttpError(422, 'Your payment method was declined. Please choose another.', {
             issue: 'INSTRUMENT_DECLINED',

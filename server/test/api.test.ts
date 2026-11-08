@@ -117,6 +117,25 @@ describe('SplitSense API end to end', () => {
     expect(total).toBe(12815 + 2360);
   });
 
+  it('stores the host PayPal email and sends it as the order payee', async () => {
+    const res = await request(app)
+      .post('/api/ai/process')
+      .field('hostName', 'Femi')
+      .field('hostPayPalEmail', ' Femi@Example.com ')
+      .field('friends', JSON.stringify(['Ada', 'Tolu', 'Kemi']))
+      .field('useSample', 'true');
+    const result = parseNdjson(res.text).find((l) => l.type === 'result');
+    expect(result.bill.hostPayPalEmail).toBe('femi@example.com');
+    const fin = await request(app).post(`/api/bills/${result.billId}/finalize`).set('x-admin-token', result.adminToken);
+    const ada = fin.body.shares.find((s: any) => s.participant === 'Ada');
+    expect((await request(app).get(`/api/shares/${ada.id}`)).body.bill.paysHostDirectly).toBe(true);
+    const created = await request(app).post('/api/payments/create-order').send({ shareId: ada.id });
+    expect(paypal.orders.get(created.body.id)!.input.payeeEmail).toBe('femi@example.com');
+
+    const bad = await request(app).post('/api/ai/process').field('hostName', 'A').field('hostPayPalEmail', 'not-an-email').field('friends', 'B').field('useSample', 'true');
+    expect(bad.status).toBe(400);
+  });
+
   it('rejects requests without a valid admin token', async () => {
     const { result } = await createBill();
     expect((await request(app).get(`/api/bills/${result.billId}`)).status).toBe(403);

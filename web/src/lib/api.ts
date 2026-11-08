@@ -75,6 +75,7 @@ export interface BillView {
   id: string;
   title: string;
   hostName: string;
+  hostPayPalEmail: string | null;
   participants: string[];
   status: 'draft' | 'finalized';
   instructions: string;
@@ -90,7 +91,7 @@ export interface BillView {
 
 export interface PublicShare {
   share: ShareView;
-  bill: { title: string; hostName: string; merchant: string; date: string | null; partySize: number };
+  bill: { title: string; hostName: string; merchant: string; date: string | null; partySize: number; paysHostDirectly: boolean };
 }
 
 export interface AppConfig {

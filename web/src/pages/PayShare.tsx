@@ -57,6 +57,7 @@ export function PayShare() {
         <>
           <p className="text-ink-soft">
             {bill.hostName} paid for {bill.title} at {bill.merchant}.
+            {bill.paysHostDirectly && ` Your payment goes straight to ${bill.hostName}'s PayPal.`}
           </p>
           <h1 className="mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl">
             Your share is <span className="tabular-nums">{money(share.amountCents, share.currency)}</span>

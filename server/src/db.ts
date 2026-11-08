@@ -43,6 +43,8 @@ export interface BillRecord {
   adminTokenHash: string;
   title: string;
   hostName: string;
+  /** Host's PayPal email. When set, friends pay the host directly (Orders v2 payee). */
+  hostPayPalEmail: string | null;
   participants: string[];
   receipt: Receipt;
   assignments: ItemAssignment[];
@@ -77,6 +79,7 @@ interface BillRow {
   admin_token_hash: string;
   title: string;
   host_name: string;
+  host_paypal_email: string | null;
   participants_json: string;
   receipt_json: string;
   assignments_json: string;
@@ -157,6 +160,7 @@ function toBill(row: BillRow): BillRecord {
     adminTokenHash: row.admin_token_hash,
     title: row.title,
     hostName: row.host_name,
+    hostPayPalEmail: row.host_paypal_email ?? null,
     participants: JSON.parse(row.participants_json) as string[],
     receipt: JSON.parse(row.receipt_json) as Receipt,
     assignments: JSON.parse(row.assignments_json) as ItemAssignment[],
@@ -212,6 +216,15 @@ export class Store {
     if (path !== ':memory:') this.db.exec('PRAGMA journal_mode = WAL');
     this.db.exec('PRAGMA foreign_keys = ON');
     this.db.exec(SCHEMA);
+    this.migrate();
+  }
+
+  /** Additive migrations for databases created by earlier versions. */
+  private migrate(): void {
+    const columns = this.db.prepare('PRAGMA table_info(bills)').all() as unknown as Array<{ name: string }>;
+    if (!columns.some((c) => c.name === 'host_paypal_email')) {
+      this.db.exec('ALTER TABLE bills ADD COLUMN host_paypal_email TEXT');
+    }
   }
 
   close(): void {
@@ -222,9 +235,9 @@ export class Store {
     const ts = now();
     this.db
       .prepare(
-        `INSERT INTO bills (id, admin_token_hash, title, host_name, participants_json, receipt_json,
+        `INSERT INTO bills (id, admin_token_hash, title, host_name, host_paypal_email, participants_json, receipt_json,
            assignments_json, tip_override_json, instructions, notes_json, status, created_at, updated_at)
-         VALUES (@id, @adminTokenHash, @title, @hostName, @participants, @receipt, @assignments,
+         VALUES (@id, @adminTokenHash, @title, @hostName, @hostPayPalEmail, @participants, @receipt, @assignments,
            @tipOverride, @instructions, @notes, 'draft', @ts, @ts)`,
       )
       .run({
@@ -232,6 +245,7 @@ export class Store {
         adminTokenHash: bill.adminTokenHash,
         title: bill.title,
         hostName: bill.hostName,
+        hostPayPalEmail: bill.hostPayPalEmail,
         participants: JSON.stringify(bill.participants),
         receipt: JSON.stringify(bill.receipt),
         assignments: JSON.stringify(bill.assignments),

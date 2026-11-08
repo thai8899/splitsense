@@ -18,6 +18,7 @@ export function NewBill() {
   const navigate = useNavigate();
   const fileInput = useRef<HTMLInputElement>(null);
   const [hostName, setHostName] = useState('');
+  const [hostEmail, setHostEmail] = useState('');
   const [friendDraft, setFriendDraft] = useState('');
   const [friends, setFriends] = useState<string[]>([]);
   const [instructions, setInstructions] = useState('');
@@ -89,6 +90,7 @@ export function NewBill() {
 
     const form = new FormData();
     form.set('hostName', hostName.trim());
+    if (hostEmail.trim()) form.set('hostPayPalEmail', hostEmail.trim());
     form.set('friends', JSON.stringify(allFriends));
     form.set('instructions', instructions);
     form.set('title', title);
@@ -158,6 +160,22 @@ export function NewBill() {
               />
             </label>
           </div>
+
+          <label className="block">
+            <span className="text-sm font-semibold">Your PayPal email (optional)</span>
+            <span className="block text-sm text-ink-soft">Friends pay you directly. Leave it blank to collect into the demo merchant account.</span>
+            <input
+              type="email"
+              value={hostEmail}
+              onChange={(e) => setHostEmail(e.target.value)}
+              maxLength={254}
+              autoComplete="email"
+              inputMode="email"
+              className="mt-2 w-full rounded-md border border-rule bg-paper px-3 py-2.5"
+              placeholder="you@example.com"
+              disabled={running}
+            />
+          </label>
 
           <div>
             <label htmlFor="friend-input" className="text-sm font-semibold">

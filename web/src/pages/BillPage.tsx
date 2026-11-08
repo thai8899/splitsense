@@ -316,7 +316,10 @@ function Dashboard({ bill, token, reload }: { bill: BillView; token: string; rel
             <div className="h-full rounded-full bg-good transition-[width] duration-700" style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-2 text-sm text-ink-soft">
-            {progress.paidCount} of {progress.owedCount} friends paid
+            {progress.paidCount} of {progress.owedCount} friends paid.{' '}
+            {bill.hostPayPalEmail
+              ? `Payments go straight to ${bill.hostPayPalEmail}.`
+              : 'Payments collect in the demo merchant account.'}
           </p>
         </div>
 
